@@ -32,7 +32,6 @@ if sys.argv[1] == 'all':
 		plt.title('Parallel: Number of Faces Collapsed vs Time')
 	else:
 		plt.title('Sequential: Number of Faces Collapsed vs Time')
-		plt.xlabel('Time (s)')
 	plt.xlabel('Time (ms)')
 	plt.ylabel('Number of Faces Collapsed')
 
