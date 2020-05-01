@@ -18,9 +18,7 @@ std::vector<std::future<float>> fut_vec;
 int i = 0;
 int counter = 0;
 bool reduceAll = 0;
-int analyzeFirst = 0;
 int nFacesReduced = 0;
-int nFacesReducedPrevious = 0;
 auto startTime = high_resolution_clock::now();
 auto stopTime = high_resolution_clock::now();
 auto startTimeAll = high_resolution_clock::now();
@@ -31,6 +29,7 @@ auto accumTimeallPrevious = milliseconds(10);
 bool cPressed = 0;
 bool Ent = 0;
 bool zoom = 0;
+bool parallel = 1;
 bool translate = 0;
 float camera_zoom = 0.0f;
 
@@ -56,10 +55,20 @@ void plotCSV() {
     executeFile.open("executeFile.ps1");
     string powershell;
     if (reduceAll == 1) {
-        powershell = "python collapse_analysis_graph.py all";
+        if (parallel) {
+            powershell = "python collapse_analysis_graph.py all p";
+        }
+        else {
+            powershell = "python collapse_analysis_graph.py all s";
+        }
     }
     else {
-        powershell = "python collapse_analysis_graph.py";
+        if (parallel) {
+            powershell = "python collapse_analysis_graph.py individual p";
+        }
+        else {
+            powershell = "python collapse_analysis_graph.py individual s";
+        }
     }
     executeFile << powershell << endl;
     executeFile.close();
@@ -118,7 +127,7 @@ void keyboard( unsigned char c, int x, int y )
     switch(c){
     case 'a':
         nFacesReduced = simplification.facesCollapsed();
-        //outputFile << nFacesReduced / (accumTime.count() / 1000) << ", "<<  i + 1<< endl;
+        outputFile << nFacesReduced / (accumTime.count() / 1000) << ", "<<  i + 1<< endl;
         i++;
         cout << "\nThe number of collapsed faces so far is " << nFacesReduced << " in " << accumTime.count()/1000 << " s" << endl;
         
@@ -126,7 +135,6 @@ void keyboard( unsigned char c, int x, int y )
     case 'b':
         //reduce all faces and do analysis
         reduceAll = 1;
-        analyzeFirst = 0;
         startTimeAll = high_resolution_clock::now();
         accumTimeAll = milliseconds(1000);
         break;
@@ -208,11 +216,29 @@ void display()
     if (doEdgeCollapse || reduceAll) {
         
         //THIS IS PARALLEL
-        for (int i = 0; i < 50; i++) {
-            future<bool> returned = async(launch::async, &Simplification::EdgeCollapse, &simplification);
+        if (parallel) {
+            for (int i = 0; i <= 50; i++) {
+                future<bool> returned = async(launch::async, &Simplification::EdgeCollapse, &simplification);
+                if (i == 50) {
+                    stopTimeAll = high_resolution_clock::now();
+                    accumTimeAll += duration_cast<milliseconds>(stopTimeAll - startTimeAll);
+                    outputFile << simplification.facesCollapsed() << "," << accumTimeAll.count() - 1000 << endl;
+                    startTimeAll = high_resolution_clock::now();
+                }
+            }
         }
         //THIS IS SEQUENTIAL
-        //simplification.EdgeCollapse()
+
+        else {
+            stopTimeAll = high_resolution_clock::now();
+            accumTimeallPrevious = accumTimeAll;
+            accumTimeAll += duration_cast<milliseconds>(stopTimeAll - startTimeAll);
+            simplification.EdgeCollapse();
+            if (accumTimeAll != accumTimeallPrevious && counter % 50 == 0) {
+                outputFile << simplification.facesCollapsed() << "," << accumTimeAll.count() - 1000 << endl;
+            }
+            startTimeAll = high_resolution_clock::now();
+        }
 
         doEdgeCollapse = false;
     }
@@ -235,19 +261,6 @@ void display()
     
     if (reduceAll == 1 && simplification.facesCollapsed() <= mesh.n_faces-3) {
         glutPostRedisplay();
-        analyzeFirst++;
-       
-        stopTimeAll = high_resolution_clock::now();
-        nFacesReducedPrevious = nFacesReduced;
-        nFacesReduced = simplification.facesCollapsed();
-        if (analyzeFirst != 1) {
-            accumTimeallPrevious = accumTimeAll;
-        }
-        accumTimeAll += duration_cast<milliseconds>(stopTimeAll - startTimeAll);
-        if (accumTimeAll.count()/1000 != accumTimeallPrevious.count()/1000) {
-            outputFile << nFacesReduced << "," << (accumTimeAll.count() / 1000) << endl;
-        }
-        startTimeAll = high_resolution_clock::now();
     }
 }
 
@@ -255,14 +268,16 @@ void display()
 int main(int argc, char *argv[])
 {
     outputFile.open("collapse_analysis.csv", ios::out | ios::trunc);
-    outputFile << "Faces Reduced" << ","<< "Time(S)" << endl;
+    outputFile << "Faces Reduced" << ","<< "Time(ms)" << endl;
+    outputFile << 0 << "," << 0 << endl;
 
     if( argc != 2 || mesh.ConstructMeshDataStructure(argv[1]) == false ){
         cerr << "usage: meshSimplification.exe *.off\n";
         exit(0);
     }
-    cout << mesh.n_faces << endl;
     simplification.InitSimplification(&mesh);
+    cout << "\nTo collapse the mesh completely press 'b'... Then to plot the data press 'p'\n";
+    cout << "\nAutomatically the mesh will be reduced in parallel...\n";
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
     glutInitWindowPosition(20, 20);

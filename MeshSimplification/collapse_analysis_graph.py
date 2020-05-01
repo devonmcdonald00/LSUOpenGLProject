@@ -22,14 +22,18 @@ with open('collapse_analysis.csv') as csvfile:
 ##ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 plt.plot(x, y, marker = 'o')
 
-if len(sys.argv) == 1:
+if sys.argv[1] == 'individual':
 	plt.title('Average Faces Collapsed per Second vs N Measurements')
 	plt.xlabel('Measurement N')
 	plt.ylabel('Average Faces Collapsed per Second')
 
 if sys.argv[1] == 'all':
-	plt.title('Number of Faces Collapsed vs Time')
-	plt.xlabel('Time (S)')
+	if sys.argv[2] == 'p':
+		plt.title('Parallel: Number of Faces Collapsed vs Time')
+	else:
+		plt.title('Sequential: Number of Faces Collapsed vs Time')
+		plt.xlabel('Time (s)')
+	plt.xlabel('Time (ms)')
 	plt.ylabel('Number of Faces Collapsed')
 
 
