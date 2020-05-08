@@ -101,6 +101,7 @@ class Mesh {
 protected:
 
     bool ReadOFFFile(char *filename);
+    bool ReadOBJFile(const char inFile[]);
     void AddEdgeInfo();
     void MakeCircularList(FaceIter &fi);
 

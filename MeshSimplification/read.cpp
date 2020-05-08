@@ -3,9 +3,18 @@
 #include "mesh.h"
 #include <cstdio>
 
+std::string GetFileExtension(const std::string& filename)
+{
+    if (filename.find_last_of(".") != std::string::npos)
+        return filename.substr(filename.find_last_of(".") + 1);
+    return "";
+}
+
 bool Mesh::ConstructMeshDataStructure(char *filename)
 {
-    if( ReadOFFFile(filename) == false ) return false;
+    if (GetFileExtension(filename) == "off") ReadOFFFile(filename);
+    else if (GetFileExtension(filename) == "obj") ReadOBJFile(filename);
+
     AddEdgeInfo();
     return true;
 }
@@ -89,6 +98,86 @@ bool Mesh::ReadOFFFile(char *filename)
     return true;
 }
 
+bool Mesh::ReadOBJFile(const char inputFile[]) {
+    std::cout << "Reading mesh " << inputFile << "!" << std::endl;
+    FILE* fp = fopen(inputFile, "r");
+    if (!fp) {
+        std::cerr << "Can't open file " << inputFile << "!" << std::endl;
+        return false;
+    }
+
+    char line[1024];
+    int v_id = 0, f_id = 0;
+    vector<VertexIter> vertex_iterator;
+    while (!feof(fp)) {
+        fgets(line, 1024, fp);
+        if (!strlen(line)) continue;
+        char* str = strtok(line, " \r\n");
+        //std::cout << str << std::endl;
+        if (!str) continue;
+        if (!strcmp(str, "v")) { //parsing a line of vertex element
+            double coord_in[3];
+            for (int i = 0; i < 3; i++) {
+                str = strtok(NULL, " \r\n{");
+                //std::cout << str << std::endl;
+                coord_in[i] = atof(str);
+                //if (coord_in[i] == atof(str)) std::cout << "INSIDE\n";
+                //else std::cout << "FUCK\n";
+            }
+            vertices.push_back(Vertex(coord_in, v_id++));
+            vertex_iterator.push_back(--(vertices.end()));
+        }
+
+        if (!strcmp(str, "f")) { //parsing a line of face element
+            int fvInds[3];
+            for (int i = 0; i < 3; i++)
+            {
+                str = strtok(NULL, " \r\n{");
+                if (!str) continue;
+                std::string v_id(str);
+                int slash_pos = v_id.find_first_of('/');
+                v_id = v_id.substr(0, slash_pos);
+                fvInds[i] = atoi(v_id.c_str()) - 1; //Note: the index in OBJ File starts with 1, while C++ array index starts with 0
+            }
+            faces.push_back(Face(vertex_iterator[fvInds[0]], vertex_iterator[fvInds[1]], vertex_iterator[fvInds[2]], f_id++));
+        }
+    }
+
+    fclose(fp);
+    n_vertices = vertices.size();
+    n_faces = faces.size();
+
+    cerr << "# of vertices  " << n_vertices << endl;
+    cerr << "# of faces     " << n_faces << endl;
+
+    double range_min[3] = { 1.0e6,  1.0e6,  1.0e6, };
+    double range_max[3] = { -1.0e6, -1.0e6, -1.0e6, };
+    double center[3];
+    for (VertexIter vi = vertices.begin(); vi != vertices.end(); vi++) {
+        for (int i = 0; i < 3; i++) {
+            if (vi->coord[i] < range_min[i])	range_min[i] = vi->coord[i];
+            if (vi->coord[i] > range_max[i])	range_max[i] = vi->coord[i];
+        }
+    }
+
+    // set input model within (-1,-1,-1) and (1,1,1) and the cetroid is at the origin
+
+    for (int i = 0; i < 3; i++) center[i] = (range_min[i] + range_max[i]) * 0.5;
+
+    double largest_range = -1.0;
+
+    for (int i = 0; i < 3; i++) {
+        if (largest_range < range_max[i] - range_min[i]) largest_range = range_max[i] - range_min[i];
+    }
+
+    double scale_factor = 2.0 / largest_range;
+    for (VertexIter vi = vertices.begin(); vi != vertices.end(); vi++) {
+        for (int i = 0; i < 3; i++) {
+            vi->coord[i] = (vi->coord[i] - center[i]) * scale_factor;
+        }
+    }
+    return true;
+}
 
 void Mesh::MakeCircularList(FaceIter &fi)
 {

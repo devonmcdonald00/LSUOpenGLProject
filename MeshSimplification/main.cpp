@@ -1,4 +1,4 @@
-
+//FINAL
 #include "mesh.h"
 #include "simplification.h"
 #include <windows.h> 
@@ -134,13 +134,18 @@ void keyboard( unsigned char c, int x, int y )
         break;
     case 'b':
         //reduce all faces and do analysis
-        reduceAll = 1;
+        reduceAll = !reduceAll;
         startTimeAll = high_resolution_clock::now();
         accumTimeAll = milliseconds(1000);
         break;
     case 'r':
         //reset analysis
+        outputFile.close();
+        outputFile.open("collapse_analysis.csv", ofstream::out | ofstream::trunc);
+        outputFile.close();
+        outputFile.open("collapse_analysis.csv", ios::out | ios::trunc);
         reduceAll = 0;
+        break;
     case 'q':
         exit(0);
     case 'c':
@@ -165,8 +170,7 @@ void keyboard( unsigned char c, int x, int y )
         }
         break;
     case 't':
-        if(toggle) toggle = 0;
-        else       toggle = 1;
+        toggle = !toggle;
         break;
     case 'l':
         zoom = !zoom;
