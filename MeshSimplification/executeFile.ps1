@@ -1,1 +1,1 @@
-python collapse_analysis_graph.py all p
+python collapse_analysis_graph.py all s

@@ -177,6 +177,9 @@ void keyboard( unsigned char c, int x, int y )
     case 'p':
         plotCSV();
         break;
+    case 'o':
+        parallel = !parallel;
+        break;
     default:
         break;
     }
@@ -261,6 +264,10 @@ void display()
     
     if (reduceAll == 1 && simplification.facesCollapsed() <= mesh.n_faces-3) {
         glutPostRedisplay();
+    }
+    else {
+        //Was all the way reduced
+        reduceAll = 0;
     }
 }
 
