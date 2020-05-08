@@ -32,6 +32,8 @@ bool zoom = 0;
 bool parallel = 1;
 bool translate = 0;
 float camera_zoom = 0.0f;
+char keyControl = 0;
+
 
 
 Mesh mesh;
@@ -54,21 +56,11 @@ void plotCSV() {
     ofstream executeFile;
     executeFile.open("executeFile.ps1");
     string powershell;
-    if (reduceAll == 1) {
-        if (parallel) {
-            powershell = "python collapse_analysis_graph.py all p";
-        }
-        else {
-            powershell = "python collapse_analysis_graph.py all s";
-        }
+    if (parallel) {
+        powershell = "python collapse_analysis_graph.py all p";
     }
     else {
-        if (parallel) {
-            powershell = "python collapse_analysis_graph.py individual p";
-        }
-        else {
-            powershell = "python collapse_analysis_graph.py individual s";
-        }
+        powershell = "python collapse_analysis_graph.py all s";
     }
     executeFile << powershell << endl;
     executeFile.close();
@@ -76,34 +68,70 @@ void plotCSV() {
 
 }
 
+
 void mouse(int button, int state, int x, int y)
 {
-    if ( button == GLUT_LEFT_BUTTON ) {
-        if ( state == GLUT_DOWN ) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
             left_click = true;
-            startx   = x;
-            starty   = y;
-        }else if (state == GLUT_UP) {
+            startx = x;
+            starty = y;
+        }
+        else if (state == GLUT_UP) {
             left_click = false;
         }
-    }else{ // button == GLUT_RIGHT_BUTTON
-        if ( state == GLUT_DOWN ) {  
+    }
+    else { // button == GLUT_RIGHT_BUTTON
+        if (state == GLUT_DOWN) {
             right_click = true;
-            startx   = x;
-            starty   = y;
-        }else if (state == GLUT_UP) {
+            startx = x;
+            starty = y;
+        }
+        else if (state == GLUT_UP) {
             right_click = false;
         }
     }
 
 }
 
-void motion( int x, int y )
+void motion(int x, int y)
 {
-    if ( left_click && !right_click ) {       // rotation
-        model_angle1 += (x - startx);
-        model_angle2 += (y - starty);
-    }else if( !left_click && right_click ){   // translating
+    if (left_click && !right_click) {// rotation
+        if (keyControl == 'r') {
+            model_angle1 += (x - startx);
+            model_angle2 += (y - starty);
+        }
+        // view-dependant mesh simplification
+        else if (keyControl == 'v') {
+            scale -= (y - starty) * 0.01;
+            if (scale < 0) {
+                scale = 0;
+            }
+            if (scale >= 0 && scale < 0.1) {
+                step = 100;
+                doLOD = true;
+            }
+            else if (scale >= 0.1 && scale < 0.35) {
+                step = 50;
+                doLOD = true;
+            }
+            else if (scale >= 0.35 && scale < 0.50) {
+                step = 30;
+                doLOD = true;
+            }
+            else if (scale >= 0.50 && scale < 0.65) {
+                step = 20;
+                doLOD = true;
+            }
+            else {
+                step = 0;
+                doLOD = true;
+            }
+            cout << "the real step: " << step << endl;
+            cout << "scale " << scale << endl;
+        }
+    }
+    else if( !left_click && right_click ){   // translating
         eye[0] -= (x - startx) / (window_width *0.25);
         eye[1] += (y - starty) / (window_height*0.25);
     }
@@ -111,15 +139,14 @@ void motion( int x, int y )
     else{ // if( left_click && right_click ) // scaling
         scale -= (y - starty) * 0.01;
     }
-    if (zoom) {
-        camera_zoom += 100*((y - starty) / (window_height * 0.25));
-    }
-
     startx = x;
     starty = y;
 
     glutPostRedisplay();
 }
+
+
+
 
 
 void keyboard( unsigned char c, int x, int y )
@@ -138,7 +165,7 @@ void keyboard( unsigned char c, int x, int y )
         startTimeAll = high_resolution_clock::now();
         accumTimeAll = milliseconds(1000);
         break;
-    case 'r':
+    case 'q':
         //reset analysis
         outputFile.close();
         outputFile.open("collapse_analysis.csv", ofstream::out | ofstream::trunc);
@@ -146,8 +173,6 @@ void keyboard( unsigned char c, int x, int y )
         outputFile.open("collapse_analysis.csv", ios::out | ios::trunc);
         reduceAll = 0;
         break;
-    case 'q':
-        exit(0);
     case 'c':
         cPressed = 1;
         if (!Ent) {
@@ -183,6 +208,12 @@ void keyboard( unsigned char c, int x, int y )
         break;
     case 'o':
         parallel = !parallel;
+        break;
+    case 'v':
+        keyControl = 'v';
+        break;
+    case 'r':
+        keyControl = 'r';
         break;
     default:
         break;
