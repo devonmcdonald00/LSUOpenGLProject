@@ -13,3 +13,4 @@
 -	Press ‘b’ to collapse the mesh fully.
 -	After mesh is fully collapsed press ‘p’ and a plot figure will be displayed of the Faces Collapsed vs. Time (ms).
 - To activate the view-dependant mesh simplification feature, press 'v', and hold the left mouse button to zoom in and out
+- MeshSimplification.sln can be used on .OFF and .OBJ files. OBJ meshes cannot fully collapse correctly
