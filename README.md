@@ -1,5 +1,7 @@
 # LSU 3D Modeling Course Project
 
+![alt text](https://github.com/devonmcdonald00/LSUOpenGLProject/blob/master/lsu-logo-png.png "Logo Title Text 1")
+
 ## Parallel Progressive Mesh Demo
 
 ## Authored by: Devon McDonald, Haytham Bachar, Shaun Jullens, and Brandon Baye
