@@ -1,4 +1,4 @@
-![alt text](https://github.com/devonmcdonald00/LSUOpenGLProject/blob/master/lsu-logo-png.png "LSU Computer Engineering Department")
+![alt text](https://github.com/devonmcdonald00/LSUOpenGLProject/blob/master/LSU-logo.jpg "LSU Computer Engineering Department")
 
 # 3D Modeling Parallel Progressive Mesh Demo
 
