@@ -12,3 +12,4 @@
 -	Press ‘o’ to switch to sequential collapse of mesh (default is parallel).
 -	Press ‘b’ to collapse the mesh fully.
 -	After mesh is fully collapsed press ‘p’ and a plot figure will be displayed of the Faces Collapsed vs. Time (ms).
+- To activate the view-dependant mesh simplification feature, press 'v', and hold the left mouse button to zoom in and out
