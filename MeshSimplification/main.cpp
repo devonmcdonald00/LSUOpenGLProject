@@ -8,6 +8,7 @@
 #include <iostream>
 #include <thread>
 #include <future>
+#include <string>
 
 using namespace chrono;
 using namespace std;
@@ -19,6 +20,8 @@ int i = 0;
 int counter = 0;
 bool reduceAll = 0;
 int nFacesReduced = 0;
+int numThreads = 0;
+int currentThreads = 0;
 auto startTime = high_resolution_clock::now();
 auto stopTime = high_resolution_clock::now();
 auto startTimeAll = high_resolution_clock::now();
@@ -57,10 +60,10 @@ void plotCSV() {
     executeFile.open("executeFile.ps1");
     string powershell;
     if (parallel) {
-        powershell = "python collapse_analysis_graph.py all p";
+        powershell = "python collapse_analysis_graph.py all p " + to_string(numThreads);
     }
     else {
-        powershell = "python collapse_analysis_graph.py all s";
+        powershell = "python collapse_analysis_graph.py all s " + to_string(numThreads);
     }
     executeFile << powershell << endl;
     executeFile.close();
@@ -131,12 +134,12 @@ void motion(int x, int y)
             cout << "scale " << scale << endl;
         }
     }
-    else if( !left_click && right_click ){   // translating
-        eye[0] -= (x - startx) / (window_width *0.25);
-        eye[1] += (y - starty) / (window_height*0.25);
+    else if (!left_click && right_click) {   // translating
+        eye[0] -= (x - startx) / (window_width * 0.25);
+        eye[1] += (y - starty) / (window_height * 0.25);
     }
-    
-    else{ // if( left_click && right_click ) // scaling
+
+    else { // if( left_click && right_click ) // scaling
         scale -= (y - starty) * 0.01;
     }
     startx = x;
@@ -149,15 +152,15 @@ void motion(int x, int y)
 
 
 
-void keyboard( unsigned char c, int x, int y )
+void keyboard(unsigned char c, int x, int y)
 {
-    switch(c){
+    switch (c) {
     case 'a':
         nFacesReduced = simplification.facesCollapsed();
-        outputFile << nFacesReduced / (accumTime.count() / 1000) << ", "<<  i + 1<< endl;
+        outputFile << nFacesReduced / (accumTime.count() / 1000) << ", " << i + 1 << endl;
         i++;
-        cout << "\nThe number of collapsed faces so far is " << nFacesReduced << " in " << accumTime.count()/1000 << " s" << endl;
-        
+        cout << "\nThe number of collapsed faces so far is " << nFacesReduced << " in " << accumTime.count() / 1000 << " s" << endl;
+
         break;
     case 'b':
         //reduce all faces and do analysis
@@ -180,16 +183,16 @@ void keyboard( unsigned char c, int x, int y )
             startTime = high_resolution_clock::now();
         }
         doEdgeCollapse = true;  break;
-    case 's':   
-        doVertexSplit  = true;  break;
+    case 's':
+        doVertexSplit = true;  break;
     case 'z':
-        if(step < 200){
-            step++; 
+        if (step < 200) {
+            step++;
             doLOD = true;
         }
-            break;
+        break;
     case 'x':
-        if(step > 0){
+        if (step > 0) {
             step--;
             doLOD = true;
         }
@@ -218,7 +221,7 @@ void keyboard( unsigned char c, int x, int y )
     default:
         break;
     }
-    
+
     glutPostRedisplay();
 }
 
@@ -252,17 +255,35 @@ void display()
     }
     cPressed = 0;
     if (doEdgeCollapse || reduceAll) {
-        
+
         //THIS IS PARALLEL
         if (parallel) {
-            for (int i = 0; i <= 50; i++) {
-                future<bool> returned = async(launch::async, &Simplification::EdgeCollapse, &simplification);
-                if (i == 50) {
-                    stopTimeAll = high_resolution_clock::now();
-                    accumTimeAll += duration_cast<milliseconds>(stopTimeAll - startTimeAll);
-                    outputFile << simplification.facesCollapsed() << "," << accumTimeAll.count() - 1000 << endl;
-                    startTimeAll = high_resolution_clock::now();
+            if (currentThreads != numThreads) {
+                //The reason we have to if blocks like this is so that we are able to avoid this loop if too many threads 
+                for (int i = 0; i <= 50; i++) {
+                    if (currentThreads != numThreads) {
+                        currentThreads++;
+                        future<bool> returned = async(launch::async, &Simplification::EdgeCollapse, &simplification);
+                        if (i == 50) {
+                            stopTimeAll = high_resolution_clock::now();
+                            accumTimeAll += duration_cast<milliseconds>(stopTimeAll - startTimeAll);
+                            outputFile << simplification.facesCollapsed() << "," << accumTimeAll.count() - 1000 << endl;
+                            startTimeAll = high_resolution_clock::now();
+                        }
+                    }
+
                 }
+            }
+
+            if (currentThreads == numThreads) {
+                stopTimeAll = high_resolution_clock::now();
+                accumTimeallPrevious = accumTimeAll;
+                accumTimeAll += duration_cast<milliseconds>(stopTimeAll - startTimeAll);
+                simplification.EdgeCollapse();
+                if (accumTimeAll != accumTimeallPrevious && counter % 50 == 0) {
+                    outputFile << simplification.facesCollapsed() << "," << accumTimeAll.count() - 1000 << endl;
+                }
+                startTimeAll = high_resolution_clock::now();
             }
         }
         //THIS IS SEQUENTIAL
@@ -280,14 +301,14 @@ void display()
 
         doEdgeCollapse = false;
     }
-    
 
-    if(doVertexSplit){
+
+    if (doVertexSplit) {
         simplification.VertexSplit();
         doVertexSplit = false;
     }
 
-    if(doLOD){
+    if (doLOD) {
         simplification.ControlLevelOfDetail(step);
         doLOD = false;
     }
@@ -295,9 +316,9 @@ void display()
     mesh.Display(toggle);
     glPopMatrix();
     glutSwapBuffers();
-    
-    
-    if (reduceAll == 1 && simplification.facesCollapsed() <= mesh.n_faces-3) {
+
+
+    if (reduceAll == 1 && simplification.facesCollapsed() <= mesh.n_faces - 3) {
         glutPostRedisplay();
     }
     else {
@@ -307,19 +328,22 @@ void display()
 }
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     outputFile.open("collapse_analysis.csv", ios::out | ios::trunc);
-    outputFile << "Faces Reduced" << ","<< "Time(ms)" << endl;
+    outputFile << "Faces Reduced" << "," << "Time(ms)" << endl;
     outputFile << 0 << "," << 0 << endl;
 
-    if( argc != 2 || mesh.ConstructMeshDataStructure(argv[1]) == false ){
+    if (argc != 2 || mesh.ConstructMeshDataStructure(argv[1]) == false) {
         cerr << "usage: meshSimplification.exe *.off\n";
         exit(0);
     }
     simplification.InitSimplification(&mesh);
     cout << "\nTo collapse the mesh completely press 'b'... Then to plot the data press 'p'\n";
     cout << "\nAutomatically the mesh will be reduced in parallel...\n";
+    cout << "\nEnter the number of threads you wish to activate... ";
+    cin >> numThreads;
+    cout << "\nNumber of threads has been changed to " << numThreads << endl;
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
     glutInitWindowPosition(20, 20);
@@ -335,4 +359,3 @@ int main(int argc, char *argv[])
     outputFile.close();
     return 1;
 }
-

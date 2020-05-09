@@ -1,1 +1,1 @@
-python collapse_analysis_graph.py individual p
+python collapse_analysis_graph.py all p 1000

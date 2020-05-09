@@ -29,9 +29,9 @@ plt.plot(x, y, marker = 'o')
 
 #if sys.argv[1] == 'all':
 if sys.argv[2] == 'p':
-	plt.title('Parallel: Number of Faces Collapsed vs Time')
+	plt.title('Parallel: Number of Faces Collapsed vs Time (Thread Count: ' + str(sys.argv[3]) + ')')
 else:
-	plt.title('Sequential: Number of Faces Collapsed vs Time')
+	plt.title('Sequential: Number of Faces Collapsed vs Time (Thread Count: ' + str(sys.argv[3]) + ')')
 plt.xlabel('Time (ms)')
 plt.ylabel('Number of Faces Collapsed')
 
