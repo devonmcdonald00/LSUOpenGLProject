@@ -97,7 +97,7 @@ void mouse(int button, int state, int x, int y)
 
 }
 
-void motion(int x, int y)
+void motion( int x, int y )
 {
     if (left_click && !right_click) {// rotation
         if (keyControl == 'r') {
@@ -110,7 +110,11 @@ void motion(int x, int y)
             if (scale < 0) {
                 scale = 0;
             }
-            if (scale >= 0 && scale < 0.1) {
+            if (scale >= 0 && scale < 0.05) {
+                step = 200;
+                doLOD = true;
+            }
+            else if (scale >= 0.05 && scale < 0.1) {
                 step = 100;
                 doLOD = true;
             }
@@ -130,16 +134,14 @@ void motion(int x, int y)
                 step = 0;
                 doLOD = true;
             }
-            cout << "the real step: " << step << endl;
+            cout << "step: " << step << endl;
             cout << "scale " << scale << endl;
         }
-    }
-    else if (!left_click && right_click) {   // translating
+    }else if( !left_click && right_click ){   // translating
         eye[0] -= (x - startx) / (window_width * 0.25);
         eye[1] += (y - starty) / (window_height * 0.25);
     }
-
-    else { // if( left_click && right_click ) // scaling
+    else {// if( left_click && right_click ) // scaling
         scale -= (y - starty) * 0.01;
     }
     startx = x;
